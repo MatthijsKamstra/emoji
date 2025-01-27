@@ -10,6 +10,33 @@
 		.result {
 			margin-top: 20px;
 		}
+
+		#sliderValue,
+		#svgSizeValue,
+		#emojiSizeValue {
+			font-size: 1.2rem;
+			margin-top: 10px;
+		}
+
+		#svgResult {
+			max-width: 100%;
+			height: auto;
+			max-width: 100%;
+			border: 1px solid silver;
+
+		}
+
+		#svgResult svg {
+			width: 100%;
+			height: auto;
+		}
+
+		#canvasResult {
+			width: 100%;
+			height: auto;
+			max-width: 100%;
+			border: 1px solid silver;
+		}
 	</style>
 </head>
 
@@ -22,10 +49,15 @@
 				<input type="text" class="form-control" id="emojiInput" maxlength="2" placeholder="emoji" value="😀">
 			</div>
 			<div class="form-group">
-				<label for="emojiSize">Emoji Size:</label>
-				<input type="range" class="form-control-range" id="emojiSize" min="10" max="1000" value="50">
+				<label for="svgSize">SVG Size:</label>
+				<input type="range" class="form-control-range" id="svgSize" min="100" max="1080" value="1080">
+				<div id="svgSizeValue">300</div> <!-- SVG size -->
 			</div>
-			<button type="submit" class="btn btn-primary">Generate SVG</button>
+			<div class="form-group">
+				<label for="emojiSize">Emoji Size:</label>
+				<input type="range" class="form-control-range" id="emojiSize" min="10" max="1000" value="400">
+				<div id="emojiSizeValue">100</div> <!-- Emoji size -->
+			</div>
 		</form>
 		<div class="row result">
 			<div class="col-6">
@@ -42,28 +74,41 @@
 				<button id="downloadSvg" class="btn btn-secondary mt-2">Download SVG</button>
 			</div>
 			<div class="col-6">
-
 				<button id="downloadPng" class="btn btn-secondary mt-2">Download PNG</button>
 			</div>
-
 		</div>
 	</div>
 
 	<script>
-		document.getElementById('emojiForm').addEventListener('submit', function (e) {
-			e.preventDefault();
-			const emoji = document.getElementById('emojiInput').value;
-			const size = document.getElementById('emojiSize').value;
-			const width = parseInt(size) + 20; // Add some padding around the emoji
-			const height = parseInt(size) + 20;
-			const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-                     <text x="10" y="${parseInt(size) / 1.2}" font-size="${size}" __style="text-align:center;text-anchor:middle">${emoji}</text>
-                   </svg>`;
-			document.getElementById('svgResult').innerHTML = svg;
+		// Update the values for the sliders dynamically
+		document.getElementById('svgSize').addEventListener('input', updatePreview);
+		document.getElementById('emojiSize').addEventListener('input', updatePreview);
+		document.getElementById('emojiInput').addEventListener('input', updatePreview);
 
+		// Function to update the preview of SVG and PNG based on slider values
+		function updatePreview() {
+			const emoji = document.getElementById('emojiInput').value;
+			const svgSize = document.getElementById('svgSize').value;
+			const emojiSize = document.getElementById('emojiSize').value;
 			const date = new Date().toISOString();
 
-			// Update canvas
+			// Update the displayed slider values
+			document.getElementById('svgSizeValue').textContent = svgSize;
+			document.getElementById('emojiSizeValue').textContent = emojiSize;
+
+			// Create the SVG content
+			const width = parseInt(svgSize);
+			const height = parseInt(svgSize);
+			const svg = `
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+	<text x="${width / 2}" y="${height / 2}" font-size="${emojiSize}" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
+</svg>
+`;
+
+			// Display the SVG preview
+			document.getElementById('svgResult').innerHTML = svg;
+
+			// Update the canvas preview
 			const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
 			const url = URL.createObjectURL(svgBlob);
 			const img = new Image();
@@ -72,30 +117,51 @@
 				canvas.width = img.width;
 				canvas.height = img.height;
 				const ctx = canvas.getContext('2d');
+				ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas before drawing
 				ctx.drawImage(img, 0, 0);
 				URL.revokeObjectURL(url);
 			};
 			img.src = url;
+		}
 
-			document.getElementById('downloadSvg').addEventListener('click', function () {
-				const downloadLink = document.createElement('a');
-				const svgBlob = new Blob([svg], { type: 'text/plain;charset=utf-8' });
-				const svgUrl = URL.createObjectURL(svgBlob);
-				downloadLink.href = svgUrl;
-				downloadLink.download = `emoji_${date}.svg`;
-				downloadLink.click();
-				URL.revokeObjectURL(svgUrl);
-			});
+		// Download SVG functionality
+		document.getElementById('downloadSvg').addEventListener('click', function () {
+			const emoji = document.getElementById('emojiInput').value;
+			const svgSize = document.getElementById('svgSize').value;
+			const emojiSize = document.getElementById('emojiSize').value;
+			const date = new Date().toISOString();
 
-			document.getElementById('downloadPng').addEventListener('click', function () {
-				const canvas = document.getElementById('canvasResult');
-				const pngUrl = canvas.toDataURL('image/png');
-				const downloadLink = document.createElement('a');
-				downloadLink.href = pngUrl;
-				downloadLink.download = `emoji_${date}.png`;
-				downloadLink.click();
-			});
+			const width = parseInt(svgSize);
+			const height = parseInt(svgSize);
+			const svg = `
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+	<text x="${width / 2}" y="${height / 2}" font-size="${emojiSize}" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
+</svg>
+`;
+
+			const downloadLink = document.createElement('a');
+			downloadLink.href = '';
+			const svgBlob = new Blob([svg], { type: 'text/plain;charset=utf-8' });
+			const svgUrl = URL.createObjectURL(svgBlob);
+			downloadLink.href = svgUrl;
+			downloadLink.download = `emoji_${date}.svg`;
+			downloadLink.click();
+			URL.revokeObjectURL(svgUrl);
 		});
+
+		// Download PNG functionality
+		document.getElementById('downloadPng').addEventListener('click', function () {
+			const canvas = document.getElementById('canvasResult');
+			const pngUrl = canvas.toDataURL('image/png');
+			const downloadLink = document.createElement('a');
+			downloadLink.href = '';
+			downloadLink.href = pngUrl;
+			downloadLink.download = `emoji_${new Date().toISOString()}.png`;
+			downloadLink.click();
+		});
+
+		// Initialize preview on page load
+		updatePreview();
 	</script>
 </body>
 
